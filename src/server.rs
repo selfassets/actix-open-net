@@ -92,7 +92,13 @@ impl VmessServer {
                     let config = Arc::clone(&self.config);
                     tokio::spawn(async move {
                         if let Err(e) = handle_connection(stream, addr, config).await {
-                            eprintln!("[{}] Connection error: {}", addr, e);
+                            // Silently ignore parse failures (non-VMess traffic like health checks)
+                            let error_str = e.to_string();
+                            if !error_str.contains("Parse request failed")
+                                && !error_str.contains("Request too short")
+                            {
+                                eprintln!("[{}] Connection error: {}", addr, e);
+                            }
                         }
                     });
                 }
@@ -115,8 +121,6 @@ async fn handle_connection(
     addr: SocketAddr,
     config: Arc<ServerConfig>,
 ) -> Result<(), ServerError> {
-    println!("[{}] New connection", addr);
-
     // Set TCP options
     stream.set_nodelay(true)?;
 
