@@ -209,7 +209,7 @@ async fn handle_connection(
         // Send response header first
         let header_response = response_parser
             .build(&[])
-            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
+            .map_err(|e| std::io::Error::other(e.to_string()))?;
         client_write.write_all(&header_response).await?;
 
         let data_processor = DataProcessor::new(encryption_method, data_key, data_iv);
