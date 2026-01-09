@@ -9,11 +9,17 @@ use crate::error::VmessError;
 use crate::message::{RequestBuilder, ResponseParser};
 use crate::transport::TcpTransport;
 use crate::user_id::UserId;
+use std::fs::File;
+use std::io::BufReader;
 use std::net::SocketAddr;
+use std::path::Path;
 use std::sync::Arc;
 use std::time::Duration;
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tokio::net::{TcpListener, TcpStream};
+use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
+use tokio::net::TcpListener;
+use tokio_rustls::rustls::pki_types::CertificateDer;
+use tokio_rustls::rustls::ServerConfig as RustlsServerConfig;
+use tokio_rustls::TlsAcceptor;
 
 /// VMess server errors
 #[derive(Debug, thiserror::Error)]
@@ -32,6 +38,8 @@ pub enum ServerError {
     VmessError(#[from] VmessError),
     #[error("Transport error: {0}")]
     TransportError(#[from] crate::transport::TransportError),
+    #[error("TLS error: {0}")]
+    TlsError(String),
 }
 
 /// VMess server configuration
@@ -46,6 +54,12 @@ pub struct ServerConfig {
     pub timeout: Duration,
     /// Authentication time window
     pub auth_time_window: Duration,
+    /// TLS enabled
+    pub tls_enabled: bool,
+    /// TLS certificate path
+    pub tls_cert_path: Option<String>,
+    /// TLS key path
+    pub tls_key_path: Option<String>,
 }
 
 impl ServerConfig {
@@ -58,6 +72,9 @@ impl ServerConfig {
             bind_port: config.server_port,
             timeout: Duration::from_secs(config.options.timeout_seconds),
             auth_time_window: Duration::from_secs(config.options.auth_time_window_seconds),
+            tls_enabled: config.options.tls_enabled,
+            tls_cert_path: config.options.tls_cert_path.clone(),
+            tls_key_path: config.options.tls_key_path.clone(),
         })
     }
 }
@@ -66,6 +83,7 @@ impl ServerConfig {
 pub struct VmessServer {
     config: Arc<ServerConfig>,
     listener: TcpListener,
+    tls_acceptor: Option<TlsAcceptor>,
 }
 
 impl VmessServer {
@@ -76,11 +94,29 @@ impl VmessServer {
             .await
             .map_err(|e| ServerError::BindFailed(format!("{}: {}", bind_addr, e)))?;
 
-        println!("VMess server listening on {}", bind_addr);
+        // Setup TLS if enabled
+        let tls_acceptor = if config.tls_enabled {
+            let cert_path = config
+                .tls_cert_path
+                .as_ref()
+                .ok_or_else(|| ServerError::TlsError("TLS cert path not set".to_string()))?;
+            let key_path = config
+                .tls_key_path
+                .as_ref()
+                .ok_or_else(|| ServerError::TlsError("TLS key path not set".to_string()))?;
+
+            let acceptor = load_tls_config(cert_path, key_path)?;
+            println!("VMess server listening on {} (TLS enabled)", bind_addr);
+            Some(acceptor)
+        } else {
+            println!("VMess server listening on {} (plain TCP)", bind_addr);
+            None
+        };
 
         Ok(Self {
             config: Arc::new(config),
             listener,
+            tls_acceptor,
         })
     }
 
@@ -90,9 +126,29 @@ impl VmessServer {
             match self.listener.accept().await {
                 Ok((stream, addr)) => {
                     let config = Arc::clone(&self.config);
+                    let tls_acceptor = self.tls_acceptor.clone();
+
                     tokio::spawn(async move {
-                        if let Err(e) = handle_connection(stream, addr, config).await {
-                            // Silently ignore parse failures (non-VMess traffic like health checks)
+                        let result = if let Some(acceptor) = tls_acceptor {
+                            // TLS connection
+                            match acceptor.accept(stream).await {
+                                Ok(tls_stream) => {
+                                    handle_connection_generic(tls_stream, addr, config).await
+                                }
+                                Err(e) => {
+                                    // Silently ignore TLS handshake failures
+                                    if !e.to_string().contains("received fatal alert") {
+                                        eprintln!("[{}] TLS handshake failed: {}", addr, e);
+                                    }
+                                    return;
+                                }
+                            }
+                        } else {
+                            // Plain TCP connection
+                            handle_connection_generic(stream, addr, config).await
+                        };
+
+                        if let Err(e) = result {
                             let error_str = e.to_string();
                             if !error_str.contains("Parse request failed")
                                 && !error_str.contains("Request too short")
@@ -115,15 +171,48 @@ impl VmessServer {
     }
 }
 
-/// Handle a single client connection
-async fn handle_connection(
-    mut stream: TcpStream,
+/// Load TLS configuration from certificate and key files
+fn load_tls_config(cert_path: &str, key_path: &str) -> Result<TlsAcceptor, ServerError> {
+    // Load certificate
+    let cert_file = File::open(Path::new(cert_path))
+        .map_err(|e| ServerError::TlsError(format!("Failed to open cert file: {}", e)))?;
+    let mut cert_reader = BufReader::new(cert_file);
+    let certs: Vec<CertificateDer<'static>> = rustls_pemfile::certs(&mut cert_reader)
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| ServerError::TlsError(format!("Failed to parse certs: {}", e)))?;
+
+    if certs.is_empty() {
+        return Err(ServerError::TlsError(
+            "No certificates found in cert file".to_string(),
+        ));
+    }
+
+    // Load private key
+    let key_file = File::open(Path::new(key_path))
+        .map_err(|e| ServerError::TlsError(format!("Failed to open key file: {}", e)))?;
+    let mut key_reader = BufReader::new(key_file);
+    let key = rustls_pemfile::private_key(&mut key_reader)
+        .map_err(|e| ServerError::TlsError(format!("Failed to parse key: {}", e)))?
+        .ok_or_else(|| ServerError::TlsError("No private key found in key file".to_string()))?;
+
+    // Build TLS config
+    let tls_config = RustlsServerConfig::builder()
+        .with_no_client_auth()
+        .with_single_cert(certs, key)
+        .map_err(|e| ServerError::TlsError(format!("Failed to build TLS config: {}", e)))?;
+
+    Ok(TlsAcceptor::from(Arc::new(tls_config)))
+}
+
+/// Handle a single client connection (generic over stream type)
+async fn handle_connection_generic<S>(
+    mut stream: S,
     addr: SocketAddr,
     config: Arc<ServerConfig>,
-) -> Result<(), ServerError> {
-    // Set TCP options
-    stream.set_nodelay(true)?;
-
+) -> Result<(), ServerError>
+where
+    S: AsyncRead + AsyncWrite + Unpin + Send + 'static,
+{
     // Read initial data (auth + command + initial data)
     let mut buf = vec![0u8; 65536];
     let n = stream.read(&mut buf).await?;
@@ -164,7 +253,7 @@ async fn handle_connection(
     let response_parser = ResponseParser::from_command(&request.command);
 
     // Split client stream
-    let (mut client_read, mut client_write) = stream.into_split();
+    let (mut client_read, mut client_write) = tokio::io::split(stream);
 
     // Store encryption parameters for relay
     let encryption_method = request.command.encryption_method;

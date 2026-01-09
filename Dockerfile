@@ -36,10 +36,13 @@ WORKDIR /app
 COPY --from=builder /app/target/release/actix-open-net /app/vmess
 
 # Create config directory and add default config
-RUN mkdir -p /app/config
+RUN mkdir -p /app/config /app/certs
 
 # Copy example config as default
 COPY config.example.json /app/config/config.json
+
+# Copy default self-signed certs (for testing, replace with real certs in production)
+COPY certs/ /app/certs/
 
 # Default config file location
 ENV VMESS_CONFIG=/app/config/config.json

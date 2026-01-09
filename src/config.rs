@@ -44,6 +44,15 @@ pub struct ConfigOptions {
     pub timeout_seconds: u64,
     #[serde(default = "default_time_window")]
     pub auth_time_window_seconds: u64,
+    /// Enable TLS
+    #[serde(default)]
+    pub tls_enabled: bool,
+    /// Path to TLS certificate file (PEM format)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tls_cert_path: Option<String>,
+    /// Path to TLS private key file (PEM format)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tls_key_path: Option<String>,
 }
 
 impl Default for ConfigOptions {
@@ -51,6 +60,9 @@ impl Default for ConfigOptions {
         Self {
             timeout_seconds: default_timeout(),
             auth_time_window_seconds: default_time_window(),
+            tls_enabled: false,
+            tls_cert_path: None,
+            tls_key_path: None,
         }
     }
 }
@@ -67,6 +79,10 @@ pub struct VmessConfig {
     /// Optional server name/remarks for subscription link
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
+    /// Public address for subscription link (domain or public IP)
+    /// If not set, server_address is used instead
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub public_address: Option<String>,
 }
 
 impl VmessConfig {
@@ -84,6 +100,7 @@ impl VmessConfig {
             encryption,
             options: ConfigOptions::default(),
             name: None,
+            public_address: None,
         }
     }
 
@@ -102,6 +119,7 @@ impl VmessConfig {
             encryption,
             options: ConfigOptions::default(),
             name: Some(name),
+            public_address: None,
         }
     }
 

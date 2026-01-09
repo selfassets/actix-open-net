@@ -51,16 +51,38 @@ pub struct VmessLinkJson {
 
 impl VmessLinkJson {
     /// Create from VmessConfig
+    ///
+    /// If `public_address` starts with `$`, it will be treated as an environment variable name.
+    /// For example: `"$MY_DOMAIN"` will read from the `MY_DOMAIN` environment variable.
     pub fn from_config(config: &VmessConfig) -> Self {
+        // Resolve public_address (supports environment variable with $ prefix)
+        let resolved_address = config.public_address.as_ref().and_then(|addr| {
+            if let Some(env_var) = addr.strip_prefix('$') {
+                std::env::var(env_var).ok()
+            } else {
+                Some(addr.clone())
+            }
+        });
+
+        // Use resolved public_address, or fall back to server_address
+        let address = resolved_address.as_ref().unwrap_or(&config.server_address);
+
         let ps = config
             .name
             .clone()
-            .unwrap_or_else(|| format!("{}:{}", config.server_address, config.server_port));
+            .unwrap_or_else(|| format!("{}:{}", address, config.server_port));
+
+        // Set TLS field based on config
+        let tls = if config.options.tls_enabled {
+            "tls".to_string()
+        } else {
+            String::new()
+        };
 
         Self {
             v: "2".to_string(),
             ps,
-            add: config.server_address.clone(),
+            add: address.clone(),
             port: config.server_port.to_string(),
             id: config.user_id.clone(),
             aid: "0".to_string(),
@@ -69,7 +91,7 @@ impl VmessLinkJson {
             header_type: "none".to_string(),
             host: String::new(),
             path: String::new(),
-            tls: String::new(),
+            tls,
         }
     }
 }

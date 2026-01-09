@@ -4,8 +4,12 @@
   "server_port": 10086,
   "encryption": "aes-128-gcm",
   "name": "My VMess Server",
+  "public_address": "$PUBLIC_DOMAIN",
   "options": {
     "timeout_seconds": 30,
-    "auth_time_window_seconds": 120
+    "auth_time_window_seconds": 120,
+    "tls_enabled": true,
+    "tls_cert_path": "/app/certs/cert.pem",
+    "tls_key_path": "/app/certs/key.pem"
   }
 }
