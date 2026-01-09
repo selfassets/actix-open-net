@@ -35,8 +35,11 @@ WORKDIR /app
 # Copy binary from builder
 COPY --from=builder /app/target/release/actix-open-net /app/vmess
 
-# Create config directory
+# Create config directory and add default config
 RUN mkdir -p /app/config
+
+# Copy example config as default
+COPY config.example.json /app/config/config.json
 
 # Default config file location
 ENV VMESS_CONFIG=/app/config/config.json
