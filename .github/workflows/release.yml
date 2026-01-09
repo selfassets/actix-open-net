@@ -25,8 +25,9 @@ jobs:
 
       - name: Check commit message for release
         id: check
+        env:
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
         run: |
-          COMMIT_MSG="${{ github.event.head_commit.message }}"
           if echo "$COMMIT_MSG" | grep -iq "release"; then
             echo "is_release=true" >> $GITHUB_OUTPUT
             echo "Release detected in commit message"
