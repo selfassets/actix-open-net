@@ -1,10 +1,11 @@
-//! VMess Protocol Client
+//! VMess Protocol
 //!
-//! A Rust implementation of the VMess protocol.
+//! A Rust implementation of the VMess protocol (client and server).
 
 use actix_open_net::{
-    generate_link, Address, CommandCodec, EncryptionMethod, RequestBuilder, UserId, VmessClient,
-    VmessConfig,
+    generate_link,
+    server::{ServerConfig, VmessServer},
+    Address, CommandCodec, EncryptionMethod, RequestBuilder, UserId, VmessClient, VmessConfig,
 };
 use std::env;
 use std::fs;
@@ -12,13 +13,14 @@ use std::path::PathBuf;
 use std::str::FromStr;
 
 fn print_usage() {
-    println!("VMess Protocol Client");
+    println!("VMess Protocol (Client/Server)");
     println!();
     println!("Usage:");
-    println!("  vmess --config <path>     Run with config file");
-    println!("  vmess --help              Show this help");
-    println!("  vmess --version           Show version");
-    println!("  vmess --example           Show example config");
+    println!("  vmess --config <path>              Run as client (connect to server)");
+    println!("  vmess --config <path> --server     Run as server (listen for connections)");
+    println!("  vmess --help                       Show this help");
+    println!("  vmess --version                    Show version");
+    println!("  vmess --example                    Show example config");
     println!();
     println!("Environment Variables:");
     println!("  VMESS_CONFIG              Path to config file");
@@ -195,6 +197,9 @@ async fn main() {
         }
     }
 
+    // Check for server mode
+    let server_mode = args.iter().any(|a| a == "--server" || a == "-s");
+
     // Try to find config file
     let config_path = find_config_path(&args);
 
@@ -205,7 +210,10 @@ async fn main() {
             match load_config(&path) {
                 Ok(config) => {
                     println!("Config loaded successfully!");
-                    println!("  Server: {}:{}", config.server_address, config.server_port);
+                    println!(
+                        "  Address: {}:{}",
+                        config.server_address, config.server_port
+                    );
                     println!("  Encryption: {}", config.encryption);
                     println!("  Timeout: {}s", config.options.timeout_seconds);
                     if let Some(ref name) = config.name {
@@ -213,31 +221,12 @@ async fn main() {
                     }
                     println!();
 
-                    // Print subscription link
-                    print_subscription_link(&config);
-
-                    // Create client
-                    match VmessClient::new(config) {
-                        Ok(mut client) => {
-                            println!("VMess client initialized.");
-                            println!("Connecting to server...");
-
-                            match client.connect().await {
-                                Ok(()) => {
-                                    println!("Connected successfully!");
-                                    // Client is ready for use
-                                    // In a real application, you would handle requests here
-                                }
-                                Err(e) => {
-                                    eprintln!("Connection failed: {}", e);
-                                    std::process::exit(1);
-                                }
-                            }
-                        }
-                        Err(e) => {
-                            eprintln!("Failed to create client: {}", e);
-                            std::process::exit(1);
-                        }
+                    if server_mode {
+                        // Run as server
+                        run_server(config).await;
+                    } else {
+                        // Run as client
+                        run_client(config).await;
                     }
                 }
                 Err(e) => {
@@ -249,6 +238,69 @@ async fn main() {
         None => {
             // No config file, run demo mode
             demo_mode();
+        }
+    }
+}
+
+async fn run_server(config: VmessConfig) {
+    println!("Starting VMess server...");
+
+    // Print subscription link
+    print_subscription_link(&config);
+
+    // Create server config
+    let server_config = match ServerConfig::from_vmess_config(&config) {
+        Ok(c) => c,
+        Err(e) => {
+            eprintln!("Failed to create server config: {}", e);
+            std::process::exit(1);
+        }
+    };
+
+    // Bind and run server
+    match VmessServer::bind(server_config).await {
+        Ok(server) => {
+            println!("Server is ready to accept connections.");
+            println!("Press Ctrl+C to stop.");
+            println!();
+
+            if let Err(e) = server.run().await {
+                eprintln!("Server error: {}", e);
+                std::process::exit(1);
+            }
+        }
+        Err(e) => {
+            eprintln!("Failed to bind server: {}", e);
+            std::process::exit(1);
+        }
+    }
+}
+
+async fn run_client(config: VmessConfig) {
+    // Print subscription link
+    print_subscription_link(&config);
+
+    // Create client
+    match VmessClient::new(config) {
+        Ok(mut client) => {
+            println!("VMess client initialized.");
+            println!("Connecting to server...");
+
+            match client.connect().await {
+                Ok(()) => {
+                    println!("Connected successfully!");
+                    // Client is ready for use
+                    // In a real application, you would handle requests here
+                }
+                Err(e) => {
+                    eprintln!("Connection failed: {}", e);
+                    std::process::exit(1);
+                }
+            }
+        }
+        Err(e) => {
+            eprintln!("Failed to create client: {}", e);
+            std::process::exit(1);
         }
     }
 }

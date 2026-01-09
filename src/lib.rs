@@ -12,6 +12,7 @@ pub mod data;
 pub mod error;
 pub mod link;
 pub mod message;
+pub mod server;
 pub mod transport;
 pub mod user_id;
 

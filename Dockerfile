@@ -47,4 +47,4 @@ ENV VMESS_CONFIG=/app/config/config.json
 EXPOSE 10086
 
 ENTRYPOINT ["/app/vmess"]
-CMD ["--config", "/app/config/config.json"]
+CMD ["--config", "/app/config/config.json", "--server"]
