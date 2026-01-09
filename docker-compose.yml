@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  vmess:
+    build: .
+    container_name: vmess
+    restart: unless-stopped
+    ports:
+      - "10086:10086"
+    volumes:
+      - ./config.json:/app/config/config.json:ro
+    environment:
+      - VMESS_CONFIG=/app/config/config.json
