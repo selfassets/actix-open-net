@@ -67,11 +67,6 @@ impl VmessLinkJson {
         // Use resolved public_address, or fall back to server_address
         let address = resolved_address.as_ref().unwrap_or(&config.server_address);
 
-        let ps = config
-            .name
-            .clone()
-            .unwrap_or_else(|| format!("{}:{}", address, config.server_port));
-
         // Set TLS field: use link_tls if set, otherwise fall back to tls_enabled
         let use_tls = config
             .options
@@ -83,11 +78,24 @@ impl VmessLinkJson {
             String::new()
         };
 
+        // Port: use 443 for TLS (external proxy), otherwise use server_port
+        let port = if use_tls && !config.options.tls_enabled {
+            // External TLS termination (like platform proxy) - use 443
+            443
+        } else {
+            config.server_port
+        };
+
+        let ps = config
+            .name
+            .clone()
+            .unwrap_or_else(|| format!("{}:{}", address, port));
+
         Self {
             v: "2".to_string(),
             ps,
             add: address.clone(),
-            port: config.server_port.to_string(),
+            port: port.to_string(),
             id: config.user_id.clone(),
             aid: "0".to_string(),
             scy: config.encryption.clone(),
