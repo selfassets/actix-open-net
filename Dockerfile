@@ -1,23 +1,29 @@
 # Build stage
 FROM rust:1.75-alpine AS builder
 
-RUN apk add --no-cache musl-dev
+RUN apk add --no-cache musl-dev pkgconfig openssl-dev openssl-libs-static
 
 WORKDIR /app
 
-# Copy manifests
+# Copy manifests first for better caching
 COPY Cargo.toml Cargo.lock ./
 
-# Create dummy main to cache dependencies
-RUN mkdir src && echo "fn main() {}" > src/main.rs
-RUN cargo build --release
+# Create dummy src to build dependencies
+RUN mkdir src && \
+    echo "fn main() {}" > src/main.rs && \
+    mkdir -p src/crypto && \
+    echo "" > src/lib.rs
+
+# Build dependencies only
+RUN cargo build --release 2>/dev/null || true
 RUN rm -rf src
 
-# Copy source code
+# Copy actual source code
 COPY src ./src
 
 # Build the actual binary
-RUN touch src/main.rs && cargo build --release
+RUN touch src/main.rs src/lib.rs && \
+    cargo build --release
 
 # Runtime stage
 FROM alpine:3.19
