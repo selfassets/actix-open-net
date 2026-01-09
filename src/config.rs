@@ -44,7 +44,7 @@ pub struct ConfigOptions {
     pub timeout_seconds: u64,
     #[serde(default = "default_time_window")]
     pub auth_time_window_seconds: u64,
-    /// Enable TLS
+    /// Enable TLS on the server
     #[serde(default)]
     pub tls_enabled: bool,
     /// Path to TLS certificate file (PEM format)
@@ -53,6 +53,10 @@ pub struct ConfigOptions {
     /// Path to TLS private key file (PEM format)
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub tls_key_path: Option<String>,
+    /// Mark TLS in subscription link (for external TLS termination like platform proxy)
+    /// If not set, defaults to tls_enabled value
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub link_tls: Option<bool>,
 }
 
 impl Default for ConfigOptions {
@@ -63,6 +67,7 @@ impl Default for ConfigOptions {
             tls_enabled: false,
             tls_cert_path: None,
             tls_key_path: None,
+            link_tls: None,
         }
     }
 }

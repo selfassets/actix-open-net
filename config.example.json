@@ -8,8 +8,7 @@
   "options": {
     "timeout_seconds": 30,
     "auth_time_window_seconds": 120,
-    "tls_enabled": true,
-    "tls_cert_path": "/app/certs/cert.pem",
-    "tls_key_path": "/app/certs/key.pem"
+    "tls_enabled": false,
+    "link_tls": true
   }
 }

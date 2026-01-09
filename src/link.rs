@@ -72,8 +72,12 @@ impl VmessLinkJson {
             .clone()
             .unwrap_or_else(|| format!("{}:{}", address, config.server_port));
 
-        // Set TLS field based on config
-        let tls = if config.options.tls_enabled {
+        // Set TLS field: use link_tls if set, otherwise fall back to tls_enabled
+        let use_tls = config
+            .options
+            .link_tls
+            .unwrap_or(config.options.tls_enabled);
+        let tls = if use_tls {
             "tls".to_string()
         } else {
             String::new()
