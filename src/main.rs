@@ -3,7 +3,8 @@
 //! A Rust implementation of the VMess protocol.
 
 use actix_open_net::{
-    Address, CommandCodec, EncryptionMethod, RequestBuilder, UserId, VmessClient, VmessConfig,
+    generate_link, Address, CommandCodec, EncryptionMethod, RequestBuilder, UserId, VmessClient,
+    VmessConfig,
 };
 use std::env;
 use std::fs;
@@ -28,6 +29,7 @@ fn print_usage() {
     println!("    \"server_address\": \"127.0.0.1\",");
     println!("    \"server_port\": 10086,");
     println!("    \"encryption\": \"aes-128-gcm\",");
+    println!("    \"name\": \"My Server\",");
     println!("    \"options\": {{");
     println!("      \"timeout_seconds\": 30,");
     println!("      \"auth_time_window_seconds\": 120");
@@ -45,6 +47,7 @@ fn print_example_config() {
   "server_address": "127.0.0.1",
   "server_port": 10086,
   "encryption": "aes-128-gcm",
+  "name": "My VMess Server",
   "options": {
     "timeout_seconds": 30,
     "auth_time_window_seconds": 120
@@ -97,6 +100,18 @@ fn find_config_path(args: &[String]) -> Option<PathBuf> {
     }
 
     None
+}
+
+/// Print subscription link for the config
+fn print_subscription_link(config: &VmessConfig) {
+    let link = generate_link(config);
+    println!("========================================");
+    println!("         VMess Subscription Link        ");
+    println!("========================================");
+    println!();
+    println!("{}", link);
+    println!();
+    println!("========================================");
 }
 
 fn demo_mode() {
@@ -193,7 +208,13 @@ async fn main() {
                     println!("  Server: {}:{}", config.server_address, config.server_port);
                     println!("  Encryption: {}", config.encryption);
                     println!("  Timeout: {}s", config.options.timeout_seconds);
+                    if let Some(ref name) = config.name {
+                        println!("  Name: {}", name);
+                    }
                     println!();
+
+                    // Print subscription link
+                    print_subscription_link(&config);
 
                     // Create client
                     match VmessClient::new(config) {

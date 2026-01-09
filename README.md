@@ -16,6 +16,7 @@ VMess 协议的 Rust 实现，V2Ray 使用的核心加密通信协议。
 - 支持地址类型：IPv4、IPv6、域名
 - 基于 Tokio 的异步 TCP 传输
 - JSON 配置文件支持
+- 启动时自动生成订阅链接
 - Docker 支持
 
 ## 安装
@@ -66,6 +67,7 @@ VMESS_CONFIG=config.json vmess
   "server_address": "127.0.0.1",
   "server_port": 10086,
   "encryption": "aes-128-gcm",
+  "name": "My VMess Server",
   "options": {
     "timeout_seconds": 30,
     "auth_time_window_seconds": 120
@@ -79,8 +81,23 @@ VMESS_CONFIG=config.json vmess
 | `server_address` | 服务器 IP 或域名 |
 | `server_port` | 服务器端口 |
 | `encryption` | 加密方式：`none`、`aes-128-cfb`、`aes-128-gcm`、`chacha20-poly1305` |
+| `name` | 服务器备注名称（可选，用于订阅链接显示） |
 | `options.timeout_seconds` | 连接超时时间（默认：30秒） |
 | `options.auth_time_window_seconds` | 认证时间窗口（默认：120秒） |
+
+### 订阅链接
+
+启动客户端后会自动输出 VMess 订阅链接，格式为 `vmess://base64(json)`，可直接导入到 V2Ray 客户端：
+
+```
+========================================
+         VMess Subscription Link        
+========================================
+
+vmess://eyJ2IjoiMiIsInBzIjoiTXkgVk1lc3MgU2VydmVyIi...
+
+========================================
+```
 
 ### Docker 运行
 
@@ -155,6 +172,7 @@ src/
 ├── data.rs         # 分块数据处理
 ├── message.rs      # 请求/响应处理
 ├── config.rs       # JSON 配置
+├── link.rs         # 订阅链接生成
 ├── error.rs        # 错误类型
 ├── transport.rs    # TCP 传输
 └── client.rs       # 高层客户端

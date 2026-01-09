@@ -64,6 +64,9 @@ pub struct VmessConfig {
     pub encryption: String,
     #[serde(default)]
     pub options: ConfigOptions,
+    /// Optional server name/remarks for subscription link
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
 }
 
 impl VmessConfig {
@@ -80,6 +83,25 @@ impl VmessConfig {
             server_port,
             encryption,
             options: ConfigOptions::default(),
+            name: None,
+        }
+    }
+
+    /// Create a new configuration with name
+    pub fn with_name(
+        user_id: String,
+        server_address: String,
+        server_port: u16,
+        encryption: String,
+        name: String,
+    ) -> Self {
+        Self {
+            user_id,
+            server_address,
+            server_port,
+            encryption,
+            options: ConfigOptions::default(),
+            name: Some(name),
         }
     }
 
@@ -322,5 +344,72 @@ mod tests {
 
         let user_id = config.user_id().unwrap();
         assert_eq!(user_id.to_string(), "de305d54-75b4-431b-adb2-eb6b9e546014");
+    }
+
+    #[test]
+    fn test_config_with_name() {
+        let json = r#"{
+            "user_id": "de305d54-75b4-431b-adb2-eb6b9e546014",
+            "server_address": "127.0.0.1",
+            "server_port": 443,
+            "encryption": "aes-128-gcm",
+            "name": "My Server"
+        }"#;
+
+        let config = VmessConfig::from_json(json).unwrap();
+        assert_eq!(config.name, Some("My Server".to_string()));
+    }
+
+    #[test]
+    fn test_config_without_name() {
+        let json = r#"{
+            "user_id": "de305d54-75b4-431b-adb2-eb6b9e546014",
+            "server_address": "127.0.0.1",
+            "server_port": 443,
+            "encryption": "aes-128-gcm"
+        }"#;
+
+        let config = VmessConfig::from_json(json).unwrap();
+        assert_eq!(config.name, None);
+    }
+
+    #[test]
+    fn test_config_new_has_no_name() {
+        let config = VmessConfig::new(
+            "de305d54-75b4-431b-adb2-eb6b9e546014".to_string(),
+            "127.0.0.1".to_string(),
+            443,
+            "aes-128-gcm".to_string(),
+        );
+        assert_eq!(config.name, None);
+    }
+
+    #[test]
+    fn test_config_with_name_constructor() {
+        let config = VmessConfig::with_name(
+            "de305d54-75b4-431b-adb2-eb6b9e546014".to_string(),
+            "127.0.0.1".to_string(),
+            443,
+            "aes-128-gcm".to_string(),
+            "Test Server".to_string(),
+        );
+        assert_eq!(config.name, Some("Test Server".to_string()));
+    }
+
+    #[test]
+    fn test_config_name_roundtrip() {
+        let original = VmessConfig::with_name(
+            "de305d54-75b4-431b-adb2-eb6b9e546014".to_string(),
+            "example.com".to_string(),
+            443,
+            "aes-128-gcm".to_string(),
+            "My VMess Server".to_string(),
+        );
+
+        let json = original.to_json().unwrap();
+        let parsed = VmessConfig::from_json(&json).unwrap();
+
+        assert_eq!(original, parsed);
+        assert_eq!(parsed.name, Some("My VMess Server".to_string()));
     }
 }
