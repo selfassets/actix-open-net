@@ -57,15 +57,28 @@ impl VmessLinkJson {
     pub fn from_config(config: &VmessConfig) -> Self {
         // Resolve public_address (supports environment variable with $ prefix)
         let resolved_address = config.public_address.as_ref().and_then(|addr| {
+            println!("[Link] public_address configured as: {}", addr);
             if let Some(env_var) = addr.strip_prefix('$') {
-                std::env::var(env_var).ok()
+                println!("[Link] Reading from environment variable: {}", env_var);
+                match std::env::var(env_var) {
+                    Ok(val) => {
+                        println!("[Link] Environment variable {} = {}", env_var, val);
+                        Some(val)
+                    }
+                    Err(e) => {
+                        println!("[Link] Environment variable {} not found: {}", env_var, e);
+                        None
+                    }
+                }
             } else {
+                println!("[Link] Using literal value: {}", addr);
                 Some(addr.clone())
             }
         });
 
         // Use resolved public_address, or fall back to server_address
         let address = resolved_address.as_ref().unwrap_or(&config.server_address);
+        println!("[Link] Final address for subscription link: {}", address);
 
         // Set TLS field: use link_tls if set, otherwise fall back to tls_enabled
         let use_tls = config
