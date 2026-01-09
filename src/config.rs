@@ -5,6 +5,7 @@
 use crate::command::EncryptionMethod;
 use crate::user_id::{UserId, UserIdError};
 use serde::{Deserialize, Serialize};
+use std::str::FromStr;
 use thiserror::Error;
 
 #[derive(Debug, Error)]

@@ -6,6 +6,7 @@ use actix_open_net::{
     VmessConfig, Address, EncryptionMethod,
     RequestBuilder, UserId, CommandCodec,
 };
+use std::str::FromStr;
 
 fn main() {
     println!("VMess Protocol Implementation");

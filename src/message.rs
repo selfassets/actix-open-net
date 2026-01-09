@@ -385,6 +385,7 @@ impl ResponseParser {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::str::FromStr;
 
     fn test_user_id() -> UserId {
         UserId::from_str("de305d54-75b4-431b-adb2-eb6b9e546014").unwrap()

@@ -119,6 +119,7 @@ fn constant_time_eq(a: &[u8; 16], b: &[u8; 16]) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::str::FromStr;
 
     fn test_user_id() -> UserId {
         UserId::from_str("de305d54-75b4-431b-adb2-eb6b9e546014").unwrap()

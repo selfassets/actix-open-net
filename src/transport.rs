@@ -151,18 +151,18 @@ impl TcpTransport {
         self.stream
             .shutdown()
             .await
-            .map_err(|e| TransportError::IoError(e))?;
+            .map_err(TransportError::IoError)?;
         Ok(())
     }
 
     /// Get the local address
     pub fn local_addr(&self) -> Result<SocketAddr, TransportError> {
-        self.stream.local_addr().map_err(|e| TransportError::IoError(e))
+        self.stream.local_addr().map_err(TransportError::IoError)
     }
 
     /// Get the peer address
     pub fn peer_addr(&self) -> Result<SocketAddr, TransportError> {
-        self.stream.peer_addr().map_err(|e| TransportError::IoError(e))
+        self.stream.peer_addr().map_err(TransportError::IoError)
     }
 
     /// Split into read and write halves

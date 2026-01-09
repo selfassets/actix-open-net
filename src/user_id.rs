@@ -5,6 +5,7 @@
 
 use thiserror::Error;
 use uuid::Uuid;
+use std::str::FromStr;
 
 #[derive(Debug, Error)]
 pub enum UserIdError {
@@ -31,24 +32,9 @@ impl UserId {
         Self(bytes)
     }
 
-    /// Parse from UUID string format
-    /// 
-    /// Accepts format: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-    pub fn from_str(s: &str) -> Result<Self, UserIdError> {
-        let uuid = Uuid::parse_str(s)
-            .map_err(|e| UserIdError::InvalidFormat(e.to_string()))?;
-        Ok(Self(*uuid.as_bytes()))
-    }
-
     /// Get raw bytes
     pub fn as_bytes(&self) -> &[u8; 16] {
         &self.0
-    }
-
-    /// Convert to UUID string format
-    pub fn to_string(&self) -> String {
-        let uuid = Uuid::from_bytes(self.0);
-        uuid.to_string()
     }
 
     /// Check if this is a valid UUID v4 (random UUID)
@@ -58,9 +44,23 @@ impl UserId {
     }
 }
 
+impl FromStr for UserId {
+    type Err = UserIdError;
+
+    /// Parse from UUID string format
+    /// 
+    /// Accepts format: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let uuid = Uuid::parse_str(s)
+            .map_err(|e| UserIdError::InvalidFormat(e.to_string()))?;
+        Ok(Self(*uuid.as_bytes()))
+    }
+}
+
 impl std::fmt::Display for UserId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.to_string())
+        let uuid = Uuid::from_bytes(self.0);
+        write!(f, "{}", uuid)
     }
 }
 
