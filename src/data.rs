@@ -256,7 +256,6 @@ impl DataProcessor {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -319,7 +318,8 @@ mod tests {
 
     #[test]
     fn test_encode_decode_chacha20() {
-        let processor = DataProcessor::new(EncryptionMethod::ChaCha20Poly1305, [5u8; 16], [6u8; 16]);
+        let processor =
+            DataProcessor::new(EncryptionMethod::ChaCha20Poly1305, [5u8; 16], [6u8; 16]);
         let data = b"ChaCha20-Poly1305 encrypted data";
 
         let chunks = processor.encode(data).unwrap();

@@ -60,7 +60,6 @@ impl VmessClient {
         Ok(())
     }
 
-
     /// Send a request to the target address through the VMess server
     pub async fn request(
         &mut self,
@@ -71,14 +70,18 @@ impl VmessClient {
         let encryption = self.config.encryption_method()?;
 
         // Build request
-        let (request_bytes, command) = self.request_builder.build(target, port, data, encryption)?;
+        let (request_bytes, command) =
+            self.request_builder.build(target, port, data, encryption)?;
 
         // Get transport
         let (transport, _) = match &mut self.state {
-            ClientState::Connected { transport, response_parser } => (transport, response_parser),
+            ClientState::Connected {
+                transport,
+                response_parser,
+            } => (transport, response_parser),
             ClientState::Disconnected => {
                 return Err(VmessError::Transport(
-                    crate::transport::TransportError::ConnectionFailed("Not connected".to_string())
+                    crate::transport::TransportError::ConnectionFailed("Not connected".to_string()),
                 ));
             }
         };
@@ -105,7 +108,7 @@ impl VmessClient {
             ClientState::Connected { transport, .. } => transport,
             ClientState::Disconnected => {
                 return Err(VmessError::Transport(
-                    crate::transport::TransportError::ConnectionFailed("Not connected".to_string())
+                    crate::transport::TransportError::ConnectionFailed("Not connected".to_string()),
                 ));
             }
         };
@@ -121,7 +124,7 @@ impl VmessClient {
             ClientState::Connected { transport, .. } => transport,
             ClientState::Disconnected => {
                 return Err(VmessError::Transport(
-                    crate::transport::TransportError::ConnectionFailed("Not connected".to_string())
+                    crate::transport::TransportError::ConnectionFailed("Not connected".to_string()),
                 ));
             }
         };
@@ -159,7 +162,11 @@ impl VmessClient {
         let addr = &self.config.server_address;
 
         // Try parsing as IPv4
-        if let Ok(parts) = addr.split('.').map(|s| s.parse::<u8>()).collect::<Result<Vec<_>, _>>() {
+        if let Ok(parts) = addr
+            .split('.')
+            .map(|s| s.parse::<u8>())
+            .collect::<Result<Vec<_>, _>>()
+        {
             if parts.len() == 4 {
                 return Ok(Address::IPv4([parts[0], parts[1], parts[2], parts[3]]));
             }
@@ -172,7 +179,7 @@ impl VmessClient {
                 .split(':')
                 .map(|s| u16::from_str_radix(s, 16))
                 .collect();
-            
+
             if let Ok(parts) = parts {
                 if parts.len() == 8 {
                     let mut bytes = [0u8; 16];
@@ -189,7 +196,6 @@ impl VmessClient {
         Ok(Address::Domain(addr.clone()))
     }
 }
-
 
 #[cfg(test)]
 mod tests {

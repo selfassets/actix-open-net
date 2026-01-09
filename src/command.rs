@@ -5,7 +5,7 @@
 
 use crate::crypto::{fnv1a_32, md5, Aes128Cfb};
 use crate::user_id::UserId;
-use rand::{Rng, thread_rng};
+use rand::{thread_rng, Rng};
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -223,7 +223,11 @@ impl CommandCodec {
     }
 
     /// Decode command section and return bytes consumed
-    pub fn decode_with_length(&self, data: &[u8], timestamp: u64) -> Result<(Command, usize), CommandError> {
+    pub fn decode_with_length(
+        &self,
+        data: &[u8],
+        timestamp: u64,
+    ) -> Result<(Command, usize), CommandError> {
         // Derive decryption key and IV
         let key = md5(self.user_id.as_bytes());
         let iv = md5(&timestamp.to_be_bytes());
@@ -405,7 +409,8 @@ impl CommandCodec {
             return Err(CommandError::BufferTooShort);
         }
         let expected_checksum = fnv1a_32(&data[..pos]);
-        let actual_checksum = u32::from_be_bytes([data[pos], data[pos + 1], data[pos + 2], data[pos + 3]]);
+        let actual_checksum =
+            u32::from_be_bytes([data[pos], data[pos + 1], data[pos + 2], data[pos + 3]]);
 
         if expected_checksum != actual_checksum {
             return Err(CommandError::InvalidChecksum);
@@ -414,17 +419,20 @@ impl CommandCodec {
         // Total consumed length includes checksum
         let total_len = pos + 4;
 
-        Ok((Command {
-            version,
-            data_iv,
-            data_key,
-            response_auth,
-            options,
-            encryption_method,
-            command_type,
-            port,
-            address,
-        }, total_len))
+        Ok((
+            Command {
+                version,
+                data_iv,
+                data_key,
+                response_auth,
+                options,
+                encryption_method,
+                command_type,
+                port,
+                address,
+            },
+            total_len,
+        ))
     }
 
     /// Format command as human-readable string
@@ -470,7 +478,6 @@ impl CommandCodec {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -494,10 +501,22 @@ mod tests {
 
     #[test]
     fn test_encryption_method_from_u8() {
-        assert_eq!(EncryptionMethod::from_u8(0x00).unwrap(), EncryptionMethod::None);
-        assert_eq!(EncryptionMethod::from_u8(0x01).unwrap(), EncryptionMethod::Aes128Cfb);
-        assert_eq!(EncryptionMethod::from_u8(0x03).unwrap(), EncryptionMethod::Aes128Gcm);
-        assert_eq!(EncryptionMethod::from_u8(0x04).unwrap(), EncryptionMethod::ChaCha20Poly1305);
+        assert_eq!(
+            EncryptionMethod::from_u8(0x00).unwrap(),
+            EncryptionMethod::None
+        );
+        assert_eq!(
+            EncryptionMethod::from_u8(0x01).unwrap(),
+            EncryptionMethod::Aes128Cfb
+        );
+        assert_eq!(
+            EncryptionMethod::from_u8(0x03).unwrap(),
+            EncryptionMethod::Aes128Gcm
+        );
+        assert_eq!(
+            EncryptionMethod::from_u8(0x04).unwrap(),
+            EncryptionMethod::ChaCha20Poly1305
+        );
         assert!(EncryptionMethod::from_u8(0x02).is_err());
     }
 
@@ -511,7 +530,10 @@ mod tests {
     #[test]
     fn test_address_type_byte() {
         assert_eq!(Address::IPv4([127, 0, 0, 1]).type_byte(), ADDR_TYPE_IPV4);
-        assert_eq!(Address::Domain("example.com".to_string()).type_byte(), ADDR_TYPE_DOMAIN);
+        assert_eq!(
+            Address::Domain("example.com".to_string()).type_byte(),
+            ADDR_TYPE_DOMAIN
+        );
         assert_eq!(Address::IPv6([0u8; 16]).type_byte(), ADDR_TYPE_IPV6);
     }
 
@@ -693,7 +715,7 @@ mod tests {
 
         let timestamp = 1234567890u64;
         let encoded = codec.encode(&cmd, timestamp).unwrap();
-        
+
         // Truncate the data
         let truncated = &encoded[..encoded.len() - 10];
         let result = codec.decode(truncated, timestamp);

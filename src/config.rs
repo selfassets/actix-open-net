@@ -30,8 +30,12 @@ impl From<UserIdError> for ConfigError {
     }
 }
 
-fn default_timeout() -> u64 { 30 }
-fn default_time_window() -> u64 { 120 }
+fn default_timeout() -> u64 {
+    30
+}
+fn default_time_window() -> u64 {
+    120
+}
 
 /// Configuration options
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -50,7 +54,6 @@ impl Default for ConfigOptions {
         }
     }
 }
-
 
 /// VMess configuration
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -82,8 +85,7 @@ impl VmessConfig {
 
     /// Parse from JSON string
     pub fn from_json(json: &str) -> Result<Self, ConfigError> {
-        serde_json::from_str(json)
-            .map_err(|e| ConfigError::ParseError(e.to_string()))
+        serde_json::from_str(json).map_err(|e| ConfigError::ParseError(e.to_string()))
     }
 
     /// Serialize to JSON string
@@ -100,7 +102,7 @@ impl VmessConfig {
         // Validate server address (basic check)
         if self.server_address.is_empty() {
             return Err(ConfigError::InvalidServerAddress(
-                "Server address cannot be empty".to_string()
+                "Server address cannot be empty".to_string(),
             ));
         }
 
@@ -131,7 +133,6 @@ impl VmessConfig {
         UserId::from_str(&self.user_id).map_err(|e| e.into())
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -252,7 +253,10 @@ mod tests {
             "aes-128-gcm".to_string(),
         );
 
-        assert_eq!(config.encryption_method().unwrap(), EncryptionMethod::Aes128Gcm);
+        assert_eq!(
+            config.encryption_method().unwrap(),
+            EncryptionMethod::Aes128Gcm
+        );
     }
 
     #[test]

@@ -39,7 +39,7 @@ impl TcpTransport {
         connect_timeout: Duration,
     ) -> Result<Self, TransportError> {
         let socket_addr = Self::resolve_address(addr, port).await?;
-        
+
         let stream = timeout(connect_timeout, TcpStream::connect(socket_addr))
             .await
             .map_err(|_| TransportError::Timeout)?
@@ -70,8 +70,14 @@ impl TcpTransport {
                     u16::from_be_bytes([ip[14], ip[15]]),
                 ];
                 let ip_addr = Ipv6Addr::new(
-                    segments[0], segments[1], segments[2], segments[3],
-                    segments[4], segments[5], segments[6], segments[7],
+                    segments[0],
+                    segments[1],
+                    segments[2],
+                    segments[3],
+                    segments[4],
+                    segments[5],
+                    segments[6],
+                    segments[7],
                 );
                 Ok(SocketAddr::new(IpAddr::V6(ip_addr), port))
             }
@@ -82,15 +88,13 @@ impl TcpTransport {
                     .await
                     .map_err(|e| TransportError::DnsError(e.to_string()))?
                     .collect();
-                
-                addrs.into_iter().next()
-                    .ok_or_else(|| TransportError::DnsError(
-                        format!("No addresses found for {}", domain)
-                    ))
+
+                addrs.into_iter().next().ok_or_else(|| {
+                    TransportError::DnsError(format!("No addresses found for {}", domain))
+                })
             }
         }
     }
-
 
     /// Send data
     pub async fn send(&mut self, data: &[u8]) -> Result<(), TransportError> {
@@ -119,7 +123,8 @@ impl TcpTransport {
     /// Receive data into buffer
     /// Returns the number of bytes read
     pub async fn recv(&mut self, buf: &mut [u8]) -> Result<usize, TransportError> {
-        let n = self.stream
+        let n = self
+            .stream
             .read(buf)
             .await
             .map_err(|e| TransportError::ReceiveFailed(e.to_string()))?;
@@ -166,7 +171,12 @@ impl TcpTransport {
     }
 
     /// Split into read and write halves
-    pub fn split(self) -> (tokio::net::tcp::OwnedReadHalf, tokio::net::tcp::OwnedWriteHalf) {
+    pub fn split(
+        self,
+    ) -> (
+        tokio::net::tcp::OwnedReadHalf,
+        tokio::net::tcp::OwnedWriteHalf,
+    ) {
         self.stream.into_split()
     }
 }

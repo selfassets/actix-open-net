@@ -1,14 +1,14 @@
 //! Cryptographic primitives for VMess protocol
 
-pub mod hash;
 pub mod aes_cfb;
 pub mod aes_gcm;
 pub mod chacha;
+pub mod hash;
 
-pub use hash::{md5, hmac_md5, fnv1a_32};
 pub use aes_cfb::Aes128Cfb;
 pub use aes_gcm::Aes128Gcm;
 pub use chacha::ChaCha20Poly1305Cipher;
+pub use hash::{fnv1a_32, hmac_md5, md5};
 
 use thiserror::Error;
 

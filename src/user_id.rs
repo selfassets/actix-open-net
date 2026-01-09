@@ -3,9 +3,9 @@
 //! User ID is a 16-byte UUID that serves as the identity token
 //! for VMess authentication.
 
+use std::str::FromStr;
 use thiserror::Error;
 use uuid::Uuid;
-use std::str::FromStr;
 
 #[derive(Debug, Error)]
 pub enum UserIdError {
@@ -14,7 +14,7 @@ pub enum UserIdError {
 }
 
 /// 16-byte User ID for VMess authentication
-/// 
+///
 /// User ID is equivalent to a UUID v4 and is used as a token
 /// for client authentication in the VMess protocol.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -48,11 +48,10 @@ impl FromStr for UserId {
     type Err = UserIdError;
 
     /// Parse from UUID string format
-    /// 
+    ///
     /// Accepts format: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let uuid = Uuid::parse_str(s)
-            .map_err(|e| UserIdError::InvalidFormat(e.to_string()))?;
+        let uuid = Uuid::parse_str(s).map_err(|e| UserIdError::InvalidFormat(e.to_string()))?;
         Ok(Self(*uuid.as_bytes()))
     }
 }

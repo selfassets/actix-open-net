@@ -4,7 +4,9 @@
 //! authentication, command section, and data section.
 
 use crate::auth::{AuthError, Authenticator};
-use crate::command::{Address, Command, CommandCodec, CommandError, CommandOptions, CommandType, EncryptionMethod};
+use crate::command::{
+    Address, Command, CommandCodec, CommandError, CommandOptions, CommandType, EncryptionMethod,
+};
 use crate::crypto::{md5, Aes128Cfb};
 use crate::data::{Chunk, DataError, DataProcessor};
 use crate::user_id::UserId;
@@ -159,11 +161,8 @@ impl RequestBuilder {
         result.extend_from_slice(&encrypted_command);
 
         // 3. Data section (chunked)
-        let data_processor = DataProcessor::new(
-            command.encryption_method,
-            command.data_key,
-            command.data_iv,
-        );
+        let data_processor =
+            DataProcessor::new(command.encryption_method, command.data_key, command.data_iv);
         let chunks = data_processor.encode(data)?;
         for chunk in chunks {
             result.extend_from_slice(&chunk.to_bytes());
@@ -178,7 +177,11 @@ impl RequestBuilder {
     }
 
     /// Parse request with specific reference time
-    pub fn parse_at_time(&self, data: &[u8], reference_time: Option<u64>) -> Result<Request, RequestError> {
+    pub fn parse_at_time(
+        &self,
+        data: &[u8],
+        reference_time: Option<u64>,
+    ) -> Result<Request, RequestError> {
         if data.len() < 16 {
             return Err(RequestError::BufferTooShort);
         }
@@ -196,16 +199,15 @@ impl RequestBuilder {
         // 2. Decode command section with length
         let command_start = 16;
         let remaining = &data[command_start..];
-        
-        let (command, command_len) = self.command_codec.decode_with_length(remaining, timestamp)?;
+
+        let (command, command_len) = self
+            .command_codec
+            .decode_with_length(remaining, timestamp)?;
         let data_start = command_start + command_len;
 
         // 3. Parse data section
-        let data_processor = DataProcessor::new(
-            command.encryption_method,
-            command.data_key,
-            command.data_iv,
-        );
+        let data_processor =
+            DataProcessor::new(command.encryption_method, command.data_key, command.data_iv);
 
         let mut chunks = Vec::new();
         let mut pos = data_start;
@@ -310,11 +312,8 @@ impl ResponseParser {
         };
 
         // Parse data section
-        let data_processor = DataProcessor::new(
-            self.encryption_method,
-            self.data_key,
-            self.data_iv,
-        );
+        let data_processor =
+            DataProcessor::new(self.encryption_method, self.data_key, self.data_iv);
 
         let mut chunks = Vec::new();
         let mut pos = data_start;
@@ -332,9 +331,9 @@ impl ResponseParser {
             }
         }
 
-        let payload = data_processor.decode(&chunks).map_err(|e| {
-            ResponseError::DecryptionFailed(e.to_string())
-        })?;
+        let payload = data_processor
+            .decode(&chunks)
+            .map_err(|e| ResponseError::DecryptionFailed(e.to_string()))?;
 
         Ok(Response {
             response_auth,
@@ -365,14 +364,11 @@ impl ResponseParser {
         result.extend_from_slice(&encrypted_header);
 
         // Encode data section
-        let data_processor = DataProcessor::new(
-            self.encryption_method,
-            self.data_key,
-            self.data_iv,
-        );
-        let chunks = data_processor.encode(response_data).map_err(|e| {
-            ResponseError::DecryptionFailed(e.to_string())
-        })?;
+        let data_processor =
+            DataProcessor::new(self.encryption_method, self.data_key, self.data_iv);
+        let chunks = data_processor
+            .encode(response_data)
+            .map_err(|e| ResponseError::DecryptionFailed(e.to_string()))?;
         for chunk in chunks {
             result.extend_from_slice(&chunk.to_bytes());
         }
@@ -380,7 +376,6 @@ impl ResponseParser {
         Ok(result)
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -521,9 +516,8 @@ mod tests {
     #[test]
     fn test_request_wrong_user_id_fails() {
         let builder1 = RequestBuilder::new(test_user_id());
-        let builder2 = RequestBuilder::new(
-            UserId::from_str("de305d54-75b4-431b-adb2-eb6b9e546015").unwrap()
-        );
+        let builder2 =
+            RequestBuilder::new(UserId::from_str("de305d54-75b4-431b-adb2-eb6b9e546015").unwrap());
         let timestamp = 1234567890u64;
 
         let (bytes, _command) = builder1
@@ -629,13 +623,7 @@ mod tests {
             let data = b"Testing encryption method";
 
             let (bytes, _command) = builder
-                .build_with_timestamp(
-                    Address::IPv4([127, 0, 0, 1]),
-                    443,
-                    data,
-                    method,
-                    timestamp,
-                )
+                .build_with_timestamp(Address::IPv4([127, 0, 0, 1]), 443, data, method, timestamp)
                 .unwrap();
 
             let parsed = builder.parse_at_time(&bytes, Some(timestamp)).unwrap();

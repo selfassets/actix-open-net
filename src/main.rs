@@ -54,13 +54,15 @@ fn print_example_config() {
 }
 
 fn load_config(path: &PathBuf) -> Result<VmessConfig, String> {
-    let content = fs::read_to_string(path)
-        .map_err(|e| format!("Failed to read config file: {}", e))?;
+    let content =
+        fs::read_to_string(path).map_err(|e| format!("Failed to read config file: {}", e))?;
 
-    let config: VmessConfig = serde_json::from_str(&content)
-        .map_err(|e| format!("Failed to parse config: {}", e))?;
+    let config: VmessConfig =
+        serde_json::from_str(&content).map_err(|e| format!("Failed to parse config: {}", e))?;
 
-    config.validate().map_err(|e| format!("Invalid config: {}", e))?;
+    config
+        .validate()
+        .map_err(|e| format!("Invalid config: {}", e))?;
 
     Ok(config)
 }
@@ -124,7 +126,10 @@ fn demo_mode() {
         443,
         "chacha20-poly1305".to_string(),
     );
-    println!("   Server: {}:{}", config.server_address, config.server_port);
+    println!(
+        "   Server: {}:{}",
+        config.server_address, config.server_port
+    );
     println!("   Encryption: {}\n", config.encryption);
 
     // Example 3: Build a VMess request

@@ -15,7 +15,7 @@ use crate::user_id::UserIdError;
 use thiserror::Error;
 
 /// Top-level VMess error type
-/// 
+///
 /// This enum encompasses all possible errors that can occur during
 /// VMess protocol operations. Each variant wraps a more specific
 /// error type from the corresponding module.
@@ -57,7 +57,6 @@ pub enum VmessError {
     #[error("Config error: {0}")]
     Config(#[from] ConfigError),
 }
-
 
 impl VmessError {
     /// Check if this is an authentication-related error
@@ -119,7 +118,7 @@ mod tests {
         // Verify that error messages don't contain raw key bytes
         let err = VmessError::Crypto(CryptoError::DecryptionFailed);
         let msg = err.to_string();
-        
+
         // Should not contain hex patterns that look like keys
         assert!(!msg.contains("0x"));
         assert!(!msg.contains("[0,"));
@@ -129,7 +128,7 @@ mod tests {
     fn test_is_auth_error() {
         let auth_err = VmessError::Auth(AuthError::HmacMismatch);
         let crypto_err = VmessError::Crypto(CryptoError::EncryptionFailed);
-        
+
         assert!(auth_err.is_auth_error());
         assert!(!crypto_err.is_auth_error());
     }
@@ -138,7 +137,7 @@ mod tests {
     fn test_is_network_error() {
         let transport_err = VmessError::Transport(TransportError::Timeout);
         let config_err = VmessError::Config(ConfigError::InvalidPort(0));
-        
+
         assert!(transport_err.is_network_error());
         assert!(!config_err.is_network_error());
     }
@@ -147,7 +146,7 @@ mod tests {
     fn test_is_config_error() {
         let config_err = VmessError::Config(ConfigError::InvalidPort(0));
         let auth_err = VmessError::Auth(AuthError::HmacMismatch);
-        
+
         assert!(config_err.is_config_error());
         assert!(!auth_err.is_config_error());
     }

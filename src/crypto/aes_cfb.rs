@@ -6,8 +6,8 @@
 
 use aes::Aes128;
 use cfb_mode::cipher::{AsyncStreamCipher, KeyIvInit};
-use cfb_mode::Encryptor as CfbEncryptor;
 use cfb_mode::Decryptor as CfbDecryptor;
+use cfb_mode::Encryptor as CfbEncryptor;
 
 type Aes128CfbEnc = CfbEncryptor<Aes128>;
 type Aes128CfbDec = CfbDecryptor<Aes128>;
@@ -53,11 +53,11 @@ mod tests {
         let key = [0u8; 16];
         let iv = [0u8; 16];
         let cipher = Aes128Cfb::new(key, iv);
-        
+
         let plaintext = b"Hello, VMess!";
         let ciphertext = cipher.encrypt(plaintext);
         let decrypted = cipher.decrypt(&ciphertext);
-        
+
         assert_eq!(decrypted, plaintext);
     }
 
@@ -66,10 +66,10 @@ mod tests {
         let key = [1u8; 16];
         let iv = [2u8; 16];
         let cipher = Aes128Cfb::new(key, iv);
-        
+
         let plaintext = b"Secret message";
         let ciphertext = cipher.encrypt(plaintext);
-        
+
         assert_ne!(ciphertext.as_slice(), plaintext);
     }
 
@@ -78,10 +78,10 @@ mod tests {
         let key = [3u8; 16];
         let iv = [4u8; 16];
         let cipher = Aes128Cfb::new(key, iv);
-        
+
         let plaintext = b"Test data of various length";
         let ciphertext = cipher.encrypt(plaintext);
-        
+
         assert_eq!(ciphertext.len(), plaintext.len());
     }
 
@@ -90,11 +90,11 @@ mod tests {
         let iv = [0u8; 16];
         let cipher1 = Aes128Cfb::new([1u8; 16], iv);
         let cipher2 = Aes128Cfb::new([2u8; 16], iv);
-        
+
         let plaintext = b"Same plaintext";
         let ciphertext1 = cipher1.encrypt(plaintext);
         let ciphertext2 = cipher2.encrypt(plaintext);
-        
+
         assert_ne!(ciphertext1, ciphertext2);
     }
 
@@ -103,11 +103,11 @@ mod tests {
         let key = [0u8; 16];
         let cipher1 = Aes128Cfb::new(key, [1u8; 16]);
         let cipher2 = Aes128Cfb::new(key, [2u8; 16]);
-        
+
         let plaintext = b"Same plaintext";
         let ciphertext1 = cipher1.encrypt(plaintext);
         let ciphertext2 = cipher2.encrypt(plaintext);
-        
+
         assert_ne!(ciphertext1, ciphertext2);
     }
 
@@ -116,11 +116,11 @@ mod tests {
         let key = [5u8; 16];
         let iv = [6u8; 16];
         let cipher = Aes128Cfb::new(key, iv);
-        
+
         let plaintext = b"";
         let ciphertext = cipher.encrypt(plaintext);
         let decrypted = cipher.decrypt(&ciphertext);
-        
+
         assert_eq!(decrypted, plaintext);
     }
 
@@ -129,11 +129,11 @@ mod tests {
         let key = [7u8; 16];
         let iv = [8u8; 16];
         let cipher = Aes128Cfb::new(key, iv);
-        
+
         let plaintext: Vec<u8> = (0..1000).map(|i| (i % 256) as u8).collect();
         let ciphertext = cipher.encrypt(&plaintext);
         let decrypted = cipher.decrypt(&ciphertext);
-        
+
         assert_eq!(decrypted, plaintext);
     }
 }

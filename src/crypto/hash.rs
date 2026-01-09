@@ -18,9 +18,8 @@ pub fn md5(data: &[u8]) -> [u8; 16] {
 /// Returns a 16-byte authentication code
 pub fn hmac_md5(key: &[u8], data: &[u8]) -> [u8; 16] {
     type HmacMd5 = Hmac<Md5>;
-    
-    let mut mac = HmacMd5::new_from_slice(key)
-        .expect("HMAC can take key of any size");
+
+    let mut mac = HmacMd5::new_from_slice(key).expect("HMAC can take key of any size");
     mac.update(data);
     let result = mac.finalize();
     result.into_bytes().into()
@@ -31,7 +30,7 @@ pub fn hmac_md5(key: &[u8], data: &[u8]) -> [u8; 16] {
 pub fn fnv1a_32(data: &[u8]) -> u32 {
     const FNV_OFFSET_BASIS: u32 = 2166136261;
     const FNV_PRIME: u32 = 16777619;
-    
+
     let mut hash = FNV_OFFSET_BASIS;
     for byte in data {
         hash ^= *byte as u32;
@@ -50,8 +49,10 @@ mod tests {
         // MD5("") = d41d8cd98f00b204e9800998ecf8427e
         assert_eq!(
             result,
-            [0xd4, 0x1d, 0x8c, 0xd9, 0x8f, 0x00, 0xb2, 0x04,
-             0xe9, 0x80, 0x09, 0x98, 0xec, 0xf8, 0x42, 0x7e]
+            [
+                0xd4, 0x1d, 0x8c, 0xd9, 0x8f, 0x00, 0xb2, 0x04, 0xe9, 0x80, 0x09, 0x98, 0xec, 0xf8,
+                0x42, 0x7e
+            ]
         );
     }
 
@@ -61,8 +62,10 @@ mod tests {
         // MD5("hello") = 5d41402abc4b2a76b9719d911017c592
         assert_eq!(
             result,
-            [0x5d, 0x41, 0x40, 0x2a, 0xbc, 0x4b, 0x2a, 0x76,
-             0xb9, 0x71, 0x9d, 0x91, 0x10, 0x17, 0xc5, 0x92]
+            [
+                0x5d, 0x41, 0x40, 0x2a, 0xbc, 0x4b, 0x2a, 0x76, 0xb9, 0x71, 0x9d, 0x91, 0x10, 0x17,
+                0xc5, 0x92
+            ]
         );
     }
 
@@ -87,8 +90,10 @@ mod tests {
         // Known HMAC-MD5 value
         assert_eq!(
             result,
-            [0x80, 0x07, 0x07, 0x13, 0x46, 0x3e, 0x77, 0x49,
-             0xb9, 0x0c, 0x2d, 0xc2, 0x49, 0x11, 0xe2, 0x75]
+            [
+                0x80, 0x07, 0x07, 0x13, 0x46, 0x3e, 0x77, 0x49, 0xb9, 0x0c, 0x2d, 0xc2, 0x49, 0x11,
+                0xe2, 0x75
+            ]
         );
     }
 
